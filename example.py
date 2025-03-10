@@ -6,16 +6,22 @@ os.environ['SPCONV_ALGO'] = 'native'        # Can be 'native' or 'auto', default
 
 import imageio
 from PIL import Image
+import os.path as osp
 from trellis.pipelines import TrellisImageTo3DPipeline
 from trellis.utils import render_utils, postprocessing_utils
 
 # 尝试使用相对路径
-model_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "TRELLIS-image-large")
 pipeline = TrellisImageTo3DPipeline.from_pretrained("JeffreyXiang/TRELLIS-image-large")
 pipeline.cuda()
 
+# 图像路径
+image_path = "assets/example_image/car.png"
+
+# 提取不带扩展名的文件名
+base_filename = osp.splitext(osp.basename(image_path))[0]
+
 # Load an image
-image = Image.open("assets/example_image/T.png")
+image = Image.open(image_path)
 
 # Run the pipeline
 outputs = pipeline.run(
@@ -38,11 +44,11 @@ outputs = pipeline.run(
 
 # Render the outputs
 video = render_utils.render_video(outputs['gaussian'][0])['color']
-imageio.mimsave("sample_gs.mp4", video, fps=30)
+imageio.mimsave(f"{base_filename}_gs.mp4", video, fps=30)
 video = render_utils.render_video(outputs['radiance_field'][0])['color']
-imageio.mimsave("sample_rf.mp4", video, fps=30)
+imageio.mimsave(f"{base_filename}_rf.mp4", video, fps=30)
 video = render_utils.render_video(outputs['mesh'][0])['normal']
-imageio.mimsave("sample_mesh.mp4", video, fps=30)
+imageio.mimsave(f"{base_filename}_mesh.mp4", video, fps=30)
 
 # GLB files can be extracted from the outputs
 glb = postprocessing_utils.to_glb(
@@ -52,7 +58,7 @@ glb = postprocessing_utils.to_glb(
     simplify=0.95,          # Ratio of triangles to remove in the simplification process
     texture_size=1024,      # Size of the texture used for the GLB
 )
-glb.export("sample.glb")
+glb.export(f"{base_filename}.glb")
 
 # Save Gaussians as PLY files
-outputs['gaussian'][0].save_ply("sample.ply")
+outputs['gaussian'][0].save_ply(f"{base_filename}.ply")
